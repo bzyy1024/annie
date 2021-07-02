@@ -1,9 +1,11 @@
 package bilibili
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -22,6 +24,9 @@ const (
 const referer = "https://www.bilibili.com"
 
 var utoken string
+
+var ChanVides = make(chan *types.Data, 100)
+var CtxDownload = context.Background()
 
 func genAPI(aid, cid, quality int, bvid string, bangumi bool, cookie string) (string, error) {
 	var (
@@ -248,6 +253,7 @@ func extractNormalVideo(url, html string, extractOption types.Options) ([]*types
 		if !utils.ItemInSlice(index+1, needDownloadItems) {
 			continue
 		}
+		log.Println("start download ", " page=", u.Page, " title=", u.Part, " url=", url)
 		wgp.Add()
 		options := bilibiliOptions{
 			url:      url,
@@ -260,11 +266,14 @@ func extractNormalVideo(url, html string, extractOption types.Options) ([]*types
 		}
 		go func(index int, options bilibiliOptions, extractedData []*types.Data) {
 			defer wgp.Done()
-			extractedData[index] = bilibiliDownload(options, extractOption)
+			tmp := bilibiliDownload(options, extractOption)
+			ChanVides <- tmp
+			extractedData[index] = tmp
 		}(dataIndex, options, extractedData)
 		dataIndex++
 	}
 	wgp.Wait()
+	close(ChanVides)
 	return extractedData, nil
 }
 

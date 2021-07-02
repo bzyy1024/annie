@@ -1,6 +1,8 @@
 package extractors
 
 import (
+	"github.com/iawia002/annie/downloader"
+	"log"
 	"net/url"
 	"strings"
 
@@ -38,6 +40,8 @@ import (
 )
 
 var extractorMap map[string]types.Extractor
+var BiliDownList = false
+var Downloader *downloader.Downloader
 
 func init() {
 	douyinExtractor := douyin.New()
@@ -104,13 +108,35 @@ func Extract(u string, option types.Options) ([]*types.Data, error) {
 			domain = utils.Domain(u.Host)
 		}
 	}
+	BiliDownList = domain == "bilibili" && option.Playlist
 	extractor := extractorMap[domain]
+	if BiliDownList {
+		go BiliListDown()
+	}
 	videos, err := extractor.Extract(u, option)
 	if err != nil {
 		return nil, err
 	}
+
+	if BiliDownList {
+		<-bilibili.CtxDownload.Done()
+		return videos, nil
+	}
+
 	for _, v := range videos {
 		v.FillUpStreamsData()
 	}
 	return videos, nil
+}
+
+func BiliListDown() {
+
+	log.Println("BiliListDown start")
+	for item := range bilibili.ChanVides {
+		log.Println("BiliListDown ......")
+		item.FillUpStreamsData()
+		Downloader.Download(item)
+	}
+	log.Println("BiliListDown all items done")
+	bilibili.CtxDownload.Done()
 }

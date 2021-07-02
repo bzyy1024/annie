@@ -130,32 +130,6 @@ func init() {
 }
 
 func download(videoURL string) error {
-	data, err := extractors.Extract(videoURL, types.Options{
-		Playlist:         playlist,
-		Items:            items,
-		ItemStart:        itemStart,
-		ItemEnd:          itemEnd,
-		ThreadNumber:     threadNumber,
-		EpisodeTitleOnly: episodeTitleOnly,
-		Cookie:           cookie,
-		YoukuCcode:       youkuCcode,
-		YoukuCkey:        youkuCkey,
-		YoukuPassword:    youkuPassword,
-	})
-	if err != nil {
-		// if this error occurs, it means that an error occurred before actually starting to extract data
-		// (there is an error in the preparation step), and the data list is empty.
-		return err
-	}
-
-	if extractedData {
-		jsonData, err := json.MarshalIndent(data, "", "\t")
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%s\n", jsonData)
-		return nil
-	}
 
 	defaultDownloader := downloader.New(downloader.Options{
 		InfoOnly:       infoOnly,
@@ -174,6 +148,40 @@ func download(videoURL string) error {
 		Aria2Method:    aria2Method,
 		Aria2Addr:      aria2Addr,
 	})
+
+	extractors.Downloader = defaultDownloader
+
+	data, err := extractors.Extract(videoURL, types.Options{
+		Playlist:         playlist,
+		Items:            items,
+		ItemStart:        itemStart,
+		ItemEnd:          itemEnd,
+		ThreadNumber:     threadNumber,
+		EpisodeTitleOnly: episodeTitleOnly,
+		Cookie:           cookie,
+		YoukuCcode:       youkuCcode,
+		YoukuCkey:        youkuCkey,
+		YoukuPassword:    youkuPassword,
+	})
+	if err != nil {
+		// if this error occurs, it means that an error occurred before actually starting to extract data
+		// (there is an error in the preparation step), and the data list is empty.
+		return err
+	}
+
+	if extractors.BiliDownList {
+		return nil
+	}
+
+	if extractedData {
+		jsonData, err := json.MarshalIndent(data, "", "\t")
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s\n", jsonData)
+		return nil
+	}
+
 	errors := make([]error, 0)
 	for _, item := range data {
 		if item.Err != nil {
