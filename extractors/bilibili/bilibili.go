@@ -26,7 +26,7 @@ const referer = "https://www.bilibili.com"
 var utoken string
 
 var ChanVides = make(chan *types.Data, 100)
-var CtxDownload = context.Background()
+var CtxDownload  , Cancel = context.WithCancel(context.Background())
 
 func genAPI(aid, cid, quality int, bvid string, bangumi bool, cookie string) (string, error) {
 	var (

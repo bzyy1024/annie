@@ -138,5 +138,5 @@ func BiliListDown() {
 		Downloader.Download(item)
 	}
 	log.Println("BiliListDown all items done")
-	bilibili.CtxDownload.Done()
+	bilibili.Cancel()
 }
